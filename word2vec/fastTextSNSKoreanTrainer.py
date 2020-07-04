@@ -1,59 +1,68 @@
+from time import time
+
 import numpy as np
 import os
 from random import shuffle
 import re
 import urllib.request
 import zipfile
-import MeCab
-
 import multiprocessing
-
 from gensim.models import FastText
-from soynlp.tokenizer import MaxScoreTokenizer
-from konlpy.tag import Mecab
+import pyTextMiner as ptm
 
 path = '/usr/local/lib/mecab/dic/mecab-ko-dic'
-mecab = Mecab(path)
 
-tokenizer = MaxScoreTokenizer()
-count = 0
-# store as list of lists of words
-sentences_ted = []
-sentences_strings_ted = []
-with open('/Data/ko_sns_comments/naver_comment_2016_only.txt', 'r') as file:
-    for line in file:
-        toks = line.split('t')
-        if len(toks) < 2: continue
+documents = []
+print('Start reading the dataset....')
+mode = 'simple'  # mode is either filtered or unfiltered or simple
+if mode == 'unfiltered':
+    pipeline = ptm.Pipeline(ptm.splitter.KoSentSplitter(),
+                            ptm.tokenizer.MeCab(path),
+                            ptm.lemmatizer.SejongPOSLemmatizer(),
+                            ptm.helper.SelectWordOnly(),
+                            ptm.helper.StopwordFilter(file='./stopwords/stopwordsKor.txt'))
 
-        sent_str = line.split('\t')[1]
-        tokens = tokenizer.tokenize(sent_str)
-        pairs = mecab.pos(sent_str)
-        tokens = []
-        for pair in pairs:
-            tokens.append(pair[0])
+    corpus1 = ptm.CorpusFromFieldDelimitedFile('/Data/ko_sns_comments/naver_comment_2016_only.txt', 1)
+    corpus2 = ptm.CorpusFromFieldDelimitedFile('/Data/ko_sns_comments/naver_comment_2015_only.txt', 1)
 
-        if count == 1:
-            print(sent_str + " : " + str(tokens))
+    corpus = corpus1.docs + corpus2.docs
+    result = pipeline.processCorpus(corpus)
+    for doc in result:
+        document = []
+        for sent in doc:
+            for word in sent:
+                document.append(word)
+        documents.append(document)
 
-        #tokens = sent_str.split()
-        sentences_ted.append(tokens)
-        count += 1
+elif mode == 'filtered':
+    pipeline = ptm.Pipeline(ptm.tokenizer.Word())
+    corpus = ptm.CorpusFromFile('/Data/ko_sns_comments/naver_comments15_16_filtered.txt')
+    documents = pipeline.processCorpus(corpus)
 
-with open('/Data/ko_sns_comments/naver_comment_2015_only.txt', 'r') as file:
-    for line in file:
-        toks = line.split('t')
-        if len(toks) < 2: continue
+elif mode == 'simple':
+    # documents = LineSentence(datapath('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'))
+    count = 0
+    for line in open('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'):
+        toks = line.split()
+        if len(toks) > 10:
+            documents.append(toks)
+            count += 1
 
-        sent_str = line.split('\t')[1]
-        tokens = tokenizer.tokenize(sent_str)
-        if count == 1:
-            print(sent_str + " : " + str(tokens))
+        if count % 10000 == 0:
+            print('processing... ' + str(count))
 
-        sentences_ted.append(tokens)
-        count += 1
+print('Document size for the total dataset: ' + str(len(documents)))
 
-model_ted = FastText(sentences_ted, size=300, window=5, min_count=3,
+fasttext_model = FastText(documents, size=300, window=5, min_count=3,
                      workers=10, sg=1, min_n=2, max_n=6)
 
-model_ted.save('./korean_sns_comments_ft.bin')
+fasttext_model.save('./korean_sns_comments_ft.bin')
 print('sent_count ' + str(count))
+
+t = time()
+fasttext_model.build_vocab(documents, progress_per=10000)
+print('Time to build vocab: {} mins'.format(round((time() - t) / 60, 2)))
+
+fasttext_model.train(documents, total_examples=fasttext_model.corpus_count, epochs=30, report_delay=1)
+print('Time to train the model: {} mins'.format(round((time() - t) / 60, 2)))
+
