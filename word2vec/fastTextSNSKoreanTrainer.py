@@ -14,7 +14,7 @@ path = '/usr/local/lib/mecab/dic/mecab-ko-dic'
 
 documents = []
 print('Start reading the dataset....')
-mode = 'simple'  # mode is either filtered or unfiltered or simple
+mode = 'simple'  # mode is either filtered or unfiltered or simple or jamo_split
 if mode == 'unfiltered':
     pipeline = ptm.Pipeline(ptm.splitter.KoSentSplitter(),
                             ptm.tokenizer.MeCab(path),
@@ -42,7 +42,8 @@ elif mode == 'filtered':
 elif mode == 'simple':
     # documents = LineSentence(datapath('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'))
     count = 0
-    for line in open('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'):
+    #for line in open('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'):
+    for line in open('../data/content.txt'):
         toks = line.split()
         if len(toks) > 10:
             documents.append(toks)
@@ -51,18 +52,35 @@ elif mode == 'simple':
         if count % 10000 == 0:
             print('processing... ' + str(count))
 
+elif mode == 'jamo_split':
+    # documents = LineSentence(datapath('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'))
+    util = ptm.Utility()
+    max = 30000000
+    count = 0
+    #for line in open('/Data/ko_sns_comments/naver_comments15_16_filtered.txt'):
+    for line in open('../data/content.txt'):
+        if len(line) < 1:
+            continue
+
+        sent = util.jamo_sentence(line)
+        toks = sent.split()
+        if len(toks) > 10:
+            documents.append(toks)
+            count += 1
+
+        if count % 10000 == 0:
+            print('processing... ' + str(count))
+
+        if max < count:
+            break
+
 print('Document size for the total dataset: ' + str(len(documents)))
 
 fasttext_model = FastText(documents, size=300, window=5, min_count=3,
                      workers=10, sg=1, min_n=2, max_n=6)
 
-fasttext_model.save('./korean_sns_comments_ft.bin')
+model_name = './korean_sns_comments_ft.bin'
+if mode == 'jamo_split':
+    model_name = './korean_sns_comments_jamo_ft.bin'
+fasttext_model.save(model_name)
 print('sent_count ' + str(count))
-
-t = time()
-fasttext_model.build_vocab(documents, progress_per=10000)
-print('Time to build vocab: {} mins'.format(round((time() - t) / 60, 2)))
-
-fasttext_model.train(documents, total_examples=fasttext_model.corpus_count, epochs=30, report_delay=1)
-print('Time to train the model: {} mins'.format(round((time() - t) / 60, 2)))
-
