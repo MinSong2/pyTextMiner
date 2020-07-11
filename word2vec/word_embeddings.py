@@ -407,11 +407,15 @@ class GloVe(WordEmbeddings):
             embeddings = np.zeros(self.word_vectors.shape, "float32")
             idx = 0
             for i in positives[::2]:
-                j = positives[idx+1]
-                word_idx1 = self.dictionary[i]
-                word_idx2 = self.dictionary[j]
-                embeddings = np.add(self.word_vectors[word_idx1], self.word_vectors[word_idx2])
-                idx += 2;
+                if len(positives) == 1:
+                    word_idx = self.dictionary[i]
+                    embeddings = self.word_vectors[word_idx]
+                else:
+                    j = positives[idx+1]
+                    word_idx1 = self.dictionary[i]
+                    word_idx2 = self.dictionary[j]
+                    embeddings = np.add(self.word_vectors[word_idx1], self.word_vectors[word_idx2])
+                    idx += 2;
             for i in negatives:
                 word_idx = self.dictionary[i]
                 embeddings = np.subtract(embeddings, self.word_vectors[word_idx])
