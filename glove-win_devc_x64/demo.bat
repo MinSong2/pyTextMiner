@@ -21,7 +21,7 @@ SET COOCCURRENCE_SHUF_FILE=cooccurrence.shuf.bin
 SET SAVE_FILE=vectors
 SET VERBOSE=2
 SET MEMORY=4.0
-SET VOCAB_MIN_COUNT=5
+SET VOCAB_MIN_COUNT=2
 SET VECTOR_SIZE=50
 SET MAX_ITER=15
 SET WINDOW_SIZE=15
@@ -42,6 +42,3 @@ shuffle -memory %MEMORY% -verbose %VERBOSE% < %COOCCURRENCE_FILE% > %COOCCURRENC
 
 ECHO glove -save-file %SAVE_FILE% -threads %NUM_THREADS% -input-file %COOCCURRENCE_SHUF_FILE% -x-max %X_MAX% -iter %MAX_ITER% -vector-size %VECTOR_SIZE% -binary %BINARY%0 -vocab-file %VOCAB_FILE% -verbose %VERBOSE%
 glove -save-file %SAVE_FILE% -threads %NUM_THREADS% -input-file %COOCCURRENCE_SHUF_FILE% -x-max %X_MAX% -iter %MAX_ITER% -vector-size %VECTOR_SIZE% -binary %BINARY%0 -vocab-file %VOCAB_FILE% -verbose %VERBOSE%
-
-ECHO %PYTHON% eval/python/evaluate.py
-%PYTHON% eval/python/evaluate.py
