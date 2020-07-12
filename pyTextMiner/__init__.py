@@ -14,6 +14,7 @@ from pyTextMiner.keyword import *
 from pyTextMiner.noun_extractor import *
 from pyTextMiner.pmi import *
 from pyTextMiner.collector import *
+from pyTextMiner.utility import *
 
 from os import listdir
 import numpy as np
@@ -122,6 +123,31 @@ class CorpusFromFieldDelimitedFile(Corpus):
                     print(line_count,'번째 에러 확인, txt 파일의 확인요망')
                 array.append(in_in)
         self.docs = array
+
+class CorpusFromFieldDelimitedEmojiFile(Corpus):
+    def __init__(self, file, index):
+        array = []
+        line_count=0
+        import re
+        emoji_pattern = re.compile("["
+                                   u"\U00010000-\U0010FFFF"
+                                   "]+", flags=re.UNICODE)
+        with open(file, encoding='utf-8') as ins:
+            for line in ins.readlines():
+
+                inside=line.split('\t')
+                line_count+=1
+                after = ''
+                try:
+                    in_in = inside[index]
+                    after = emoji_pattern.sub(r'', in_in)
+                except IndexError:
+                    print(line_count,'번째 에러 확인, txt 파일의 확인요망')
+
+                if len(after) > 0:
+                    array.append(after)
+
+            self.docs = array
 
 class CorpusFromFieldDelimitedFileWithYear(Corpus):
     def __init__(self, file, doc_index=1, year_index=0):
