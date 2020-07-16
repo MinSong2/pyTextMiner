@@ -1,3 +1,5 @@
+import csv
+
 from pyTextMiner.splitter import *
 from pyTextMiner.tokenizer import *
 from pyTextMiner.stemmer import *
@@ -119,6 +121,23 @@ class CorpusFromFieldDelimitedFile(Corpus):
                 line_count+=1
                 try:
                     in_in=inside[index]
+                except IndexError:
+                    print(line_count,'번째 에러 확인, txt 파일의 확인요망')
+                array.append(in_in)
+        self.docs = array
+
+class CorpusFromCSVFile(Corpus):
+
+    def __init__(self, file, index):
+        array = []
+        line_count=0
+        with open(file, encoding='utf-8') as ins:
+            reader = csv.reader(ins)
+            for row in reader:
+                line_count+=1
+                in_in = ''
+                try:
+                    in_in=row[index]
                 except IndexError:
                     print(line_count,'번째 에러 확인, txt 파일의 확인요망')
                 array.append(in_in)
