@@ -58,21 +58,23 @@ class Doc2VecTrainer:
         negative = 5
         hs = 0
 
+        docvecs_mapfile = 'docvecs_map.txt'
+
         if algorithm == 'pv_dmc':
             # PV-DM with concatenation
             # window=5 (both sides) approximates paper's 10-word total window size
             # PV-DM w/ concatenation adds a special null token to the vocabulary: '\x00'
             model = Doc2Vec(dm=1, dm_concat=1, vector_size=vector_size, window=window, negative=negative, hs=hs,
-                            min_count=vocab_min_count, workers=cores)
+                            min_count=vocab_min_count, workers=cores, docvecs_mapfile=docvecs_mapfile)
         elif algorithm == 'pv_dma':
             # PV-DM with average
             # window=5 (both sides) approximates paper's 10-word total window size
             model = Doc2Vec(dm=1, dm_mean=1, vector_size=vector_size, window=window, negative=negative, hs=hs,
-                            min_count=vocab_min_count, workers=cores)
+                            min_count=vocab_min_count, workers=cores, docvecs_mapfile=docvecs_mapfile)
         elif algorithm == 'pv_dbow':
             # PV-DBOW
             model = Doc2Vec(dm=0, vector_size=vector_size, window=window, negative=negative, hs=hs,
-                            min_count=vocab_min_count, workers=cores)
+                            min_count=vocab_min_count, workers=cores, docvecs_mapfile=docvecs_mapfile)
         else:
             raise ValueError('Unknown algorithm: %s' % algorithm)
 
@@ -134,6 +136,9 @@ class Doc2VecSimilarity:
     def load_model(self, model_file):
         self.doc2vec = Doc2Vec.load(model_file)
 
+    def get_model(self):
+        return self.doc2vec
+
     def most_similar(self, document):
         print('most similart documents')
         doc_vec = self.doc2vec.infer_vector(document.split())
@@ -159,3 +164,4 @@ class Doc2VecSimilarity:
 
         similarity = spatial.distance.cosine(vec1, vec2)
         return similarity
+
