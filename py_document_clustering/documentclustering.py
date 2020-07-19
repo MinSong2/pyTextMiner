@@ -26,12 +26,18 @@ class DocumentClustering:
         self.clustering = None
         self.vectorizer = None
         self.dataset_size=0
+        self.doc2vec_matrix = False
 
-    def make_matrix(self, documents, n_components=-1):
-        self.vectorizer = TfidfVectorizer()
-        #self.vectorizer = CountVectorizer()
-        self.X = self.vectorizer.fit_transform(documents)
-        self.dataset_size=len(documents)
+    def make_matrix(self, documents=None, n_components=-1, doc2vec_matrix=None):
+        if isinstance(doc2vec_matrix, np.ndarray) == False:
+            self.vectorizer = TfidfVectorizer()
+            # self.vectorizer = CountVectorizer()
+            self.X = self.vectorizer.fit_transform(documents)
+            self.dataset_size = len(documents)
+        else:
+            self.X = doc2vec_matrix
+            self.dataset_size = len(doc2vec_matrix)
+            self.doc2vec_matrix = True
 
         if (n_components != -1):
             if n_components > len(self.vectorizer.get_feature_names()):
@@ -78,7 +84,8 @@ class DocumentClustering:
             t0 = time()
 
             #to make dense matrix
-            self.X = self.X.toarray()
+            if self.doc2vec_matrix == False:
+                self.X = self.X.toarray()
             self.clustering.fit(self.X)
             print("done in %0.3fs" % (time() - t0))
             print()
@@ -111,13 +118,6 @@ class DocumentClustering:
                     print(' %s' % terms[ind], end='')
                 print()
 
-            self.X = self.X.toarray()
-            #self.X = csr_matrix(self.X).todense()
-
-            pca_t = PCA().fit_transform(self.X)
-            #print(self.clustering.labels_)
-            plt.scatter(pca_t[:, 0], pca_t[:, 1], c=self.clustering.labels_, cmap='rainbow')
-            plt.show()
 
         elif self.name == 'agglo':
             cluster_labels = self.clustering.labels_
@@ -136,13 +136,6 @@ class DocumentClustering:
                 print("Cluster " + str(_cluster) + " : " + str(len(clusters[_cluster])) + " documents")
                 print(key_terms)
             print()
-
-            # The output is a one-dimensional array of N documents corresponding to the clusters
-            # assigned to our N data points.
-            pca_t = PCA().fit_transform(self.X)
-            #print(self.clustering.labels_)
-            plt.scatter(pca_t[:, 0], pca_t[:, 1], c=self.clustering.labels_, cmap='rainbow')
-            plt.show()
 
         elif self.name == 'spectral_cocluster':
             target_number=10
@@ -178,10 +171,6 @@ class DocumentClustering:
                 print("bicluster {} : {} documents, {} words".format(idx, n_rows, n_cols))
                 print("categories   : {}".format(cat_string))
                 print("words        : {}\n".format(', '.join(important_words)))
-
-            pca_t = PCA().fit_transform(self.X.toarray())
-            plt.scatter(pca_t[:, 0], pca_t[:, 1], c=self.clustering.row_labels_, cmap='rainbow')
-            plt.show()
 
     def bicluster_ncut(self, i):
         rows, cols = self.clustering.get_indices(i)
@@ -223,3 +212,29 @@ class DocumentClustering:
             out[cluster] = out[cluster].reshape(cluster_shape[0] * cluster_shape[1])[:keywords_per_cluster].tolist()
 
         return out
+
+    def visualize(self):
+        # The output is a one-dimensional array of N documents corresponding to the clusters
+        # assigned to our N data points.
+        if self.name == 'spectral_cocluster':
+            pca_t = None
+            if self.doc2vec_matrix == False:
+                pca_t = PCA().fit_transform(self.X.toarray())
+            else:
+                pca_t = PCA().fit_transform(self.X)
+            #pca_t = PCA().fit_transform(self.X)
+            # print(self.clustering.labels_)
+            plt.scatter(pca_t[:, 0], pca_t[:, 1], c=self.clustering.row_labels_, cmap='rainbow')
+            plt.show()
+        elif self.name == 'agglo':
+            pca_t = PCA().fit_transform(self.X)
+            plt.scatter(pca_t[:, 0], pca_t[:, 1], c=self.clustering.labels_, cmap='rainbow')
+            plt.show()
+        elif self.name == 'k-means':
+            if self.doc2vec_matrix == False:
+                self.X = self.X.toarray()
+
+            pca_t = PCA().fit_transform(self.X)
+            # print(self.clustering.labels_)
+            plt.scatter(pca_t[:, 0], pca_t[:, 1], c=self.clustering.labels_, cmap='rainbow')
+            plt.show()
