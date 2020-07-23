@@ -19,7 +19,7 @@ from pyTextMiner.collector import *
 from pyTextMiner.utility import *
 
 from os import listdir
-import numpy as np
+from .version import __version__
 
 class Pipeline:
     def __init__(self, *pipelines):
