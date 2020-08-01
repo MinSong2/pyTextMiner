@@ -2,6 +2,23 @@
 from torch.utils.data import Dataset, DataLoader
 from py_bert.bert_dataset import PYBERTDataset
 import pandas as pd
+from transformers import BertModel, BertTokenizer
+from py_bert.tokenization_kobert import KoBertTokenizer
+from py_bert.tokenization_korbert import KorBertTokenizer
+import seaborn as sns
+import matplotlib.pyplot as plt
+import os
+
+def get_korean_tokenizer(bert_model_name):
+    tokenizer = None
+    if bert_model_name.startswith('monologg'):
+        tokenizer = KoBertTokenizer.from_pretrained(bert_model_name)
+    elif 'etri' or 'mecab' in bert_model_name:
+        tokenizer = KorBertTokenizer.from_pretrained(os.path.abspath(bert_model_name))
+    else:
+        tokenizer = BertTokenizer.from_pretrained(bert_model_name)
+
+    return tokenizer
 
 def to_sentiment(rating):
     '''
@@ -52,3 +69,25 @@ def convert_to_df(documents, labels):
         class_names = ['positive', 'neutral', 'negative']
 
     return document_df, class_names
+
+
+def convert_to_df_for_classification(documents, labels):
+    pd.set_option('display.max_columns', None)
+    document_df = pd.DataFrame()
+    combined = zip(documents,labels)
+    for i, (text, label) in enumerate(combined):
+        document_df = document_df.append(pd.Series([text, int(label)]), ignore_index=True)
+
+    document_df.columns = ['content', 'label']
+    class_names = document_df['label'].unique()
+
+    return document_df, class_names
+
+def show_confusion_matrix(confusion_matrix):
+    hmap = sns.heatmap(confusion_matrix, annot=True, fmt="d", cmap="Blues")
+    hmap.yaxis.set_ticklabels(hmap.yaxis.get_ticklabels(), rotation=0, ha='right')
+    hmap.xaxis.set_ticklabels(hmap.xaxis.get_ticklabels(), rotation=30, ha='right')
+
+    plt.ylabel('True sentiment')
+    plt.xlabel('Predicted sentiment')
+    plt.show()
