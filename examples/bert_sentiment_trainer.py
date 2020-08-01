@@ -1,7 +1,9 @@
+from transformers import BertForSequenceClassification
+
 from py_bert.bert_dataset import PYBERTDataset
-from py_bert.bert_classification_model import PYBERTClassifier
+from py_bert.bert_classification_model import PYBERTClassifier, PYBERTClassifierGenAtten, PYBertForSequenceClassification
 from py_bert.bert_trainer import PYBERTTrainer
-from py_bert.bert_util import create_data_loader, add_sentiment_label, convert_to_df
+from py_bert.bert_util import create_data_loader, add_sentiment_label, convert_to_df, get_korean_tokenizer
 from transformers import BertModel, BertTokenizer
 from sklearn.model_selection import train_test_split
 
@@ -13,16 +15,16 @@ import numpy as np
 import pandas as pd
 
 #mode is either en or kr
-mode = 'ko_distilkobert'
+mode = 'kr'
 df = None
 
 if mode == 'en':
     df = pd.read_csv("../data/reviews.csv")
     df, class_names = add_sentiment_label(df)
-elif mode == 'kr' or mode.startswith('ko'):
+elif mode == 'kr':
     mecab_path = 'C:\\mecab\\mecab-ko-dic'
     stopwords = '../stopwords/stopwordsKor.txt'
-    input_file = '../data/ratings.txt'
+    input_file = '../data/ratings_train.txt'
 
     pipeline = ptm.Pipeline(ptm.splitter.KoSentSplitter(),
                             ptm.tokenizer.MeCab(mecab_path),
@@ -36,8 +38,9 @@ elif mode == 'kr' or mode.startswith('ko'):
     labels = []
     result = pipeline.processCorpus(corpus)
     i = 1
+
     #below is just for a sample test
-    for doc in result[1:100]:
+    for doc in result[1:10000]:
         document = ''
         for sent in doc:
             for word in sent:
@@ -65,19 +68,10 @@ df_val, df_test = train_test_split(df_test, test_size=0.5, random_state=RANDOM_S
 print(df_train.shape, df_val.shape, df_test.shape)
 
 tokenizer = None
-bert_model_name = ''
-if mode == 'kr':
-    bert_model_name = 'bert-base-multilingual-cased'
-    tokenizer = BertTokenizer.from_pretrained(bert_model_name)
-elif mode == 'en':
-    bert_model_name = 'bert-base-cased'
-    tokenizer = BertTokenizer.from_pretrained(bert_model_name)
-elif mode == 'ko_bert':
-    bert_model_name = 'monologg/kobert'
-    tokenizer = KoBertTokenizer.from_pretrained(bert_model_name)
-elif mode == 'ko_distilkobert':
-    bert_model_name = 'monologg/distilkobert'
-    tokenizer = KoBertTokenizer.from_pretrained(bert_model_name)
+#bert-base-multilingual-cased, bert-base-cased, monologg/kobert, monologg/distilkobert, bert_models/vocab_etri.list
+#bert_model_name='../bert_models/vocab_mecab.list'
+bert_model_name='monologg/kobert'
+tokenizer =get_korean_tokenizer(bert_model_name)
 
 BATCH_SIZE = 16
 train_data_loader = create_data_loader(df_train, tokenizer, MAX_LEN, BATCH_SIZE)
@@ -90,15 +84,31 @@ data.keys()
 
 print(data['input_ids'].shape)
 print(data['attention_mask'].shape)
+print(data['token_type_ids'].shape)
 print(data['targets'].shape)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-model = PYBERTClassifier(len(class_names), bert_model_name)
+classifier = 'attention'
+if classifier == 'basic':
+    model = PYBERTClassifier(len(class_names), bert_model_name)
+elif classifier == 'attention':
+    dr_rate = 0.3
+    model = PYBERTClassifierGenAtten(len(class_names), bert_model_name, dr_rate=dr_rate)
+elif classifier == 'transformers':
+    model = PYBertForSequenceClassification(len(class_names), bert_model_name).__call__()
+
 model = model.to(device)
 
-num_epochs = 10
+algorithm='no_transformers' #transformers or non_transformers
+torch_model_name='best_model_states.bin'
+
+#BERT authors suggests epoch from 2 to 4
+num_epochs = 2
 trainer = PYBERTTrainer()
-trainer.train(model, device, train_data_loader, val_data_loader, df_val, df_train, num_epochs=num_epochs)
+trainer.train(model, device, train_data_loader, val_data_loader,
+              df_val, df_train, tokenizer, num_epochs=num_epochs, algorithm=algorithm, torch_model_name=torch_model_name)
 
+trainer.summanry_training_stats()
 
+trainer.visualize_performance()

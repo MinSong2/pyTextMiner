@@ -13,9 +13,44 @@ import torch
 #bert multi-lingual model
 #https://github.com/google-research/bert/blob/master/multilingual.md
 
+def get_pretrained_model(pretrained_type):
+    if pretrained_type == 'etri':
+        # use etri tokenizer
+        from py_bert.tokenization_korbert import BertTokenizer
+        tokenizer_path = 'D:\\python_workspace\\pyTextMiner\\bert_models\\vocab_mecab.list'
+        tokenizer = BertTokenizer.from_pretrained(
+            tokenizer_path, do_lower_case=False)
+        vocab = tokenizer.vocab
+    elif pretrained_type == 'skt':
+        # use gluonnlp tokenizer
+        import gluonnlp as nlp
+        vocab_path = './pretrained_model/skt/vocab.json'
+        tokenizer_path = './pretrained_model/skt/tokenizer.model'
+        vocab = nlp.vocab.BERTVocab.from_json(open(vocab_path, 'rt').read())
+        tokenizer = nlp.data.BERTSPTokenizer(
+            path=tokenizer_path, vocab=vocab, lower=False)
+        vocab = tokenizer.vocab.token_to_idx
+    else:
+        TypeError('Invalid pretrained model type')
+    return tokenizer, vocab
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+
+#tokenizer, vocab = get_pretrained_model('kobert')
+
+import pyTextMiner as ptm
+
 text = "예로부터 말이 많은 사람은 말로 망하고 밤중에 말 타고 토끼를 데리고 도망치는 경우가 많다."
+mecab_path='C:\\mecab\\mecab-ko-dic'
+mecab = ptm.tokenizer.MeCab(mecab_path)
+pos = mecab.inst.pos(text)
+pos_text = ''
+for word_pos in pos:
+    pos_text += word_pos[0] + '/' + word_pos[1] + ' '
+
+pos_text = pos_text.strip()
+print(pos_text)
+
 marked_text = "[CLS] " + text + " [SEP]"
 
 # Tokenize our sentence with the BERT tokenizer.
@@ -56,6 +91,10 @@ device = torch.device("cpu")
 
 # Load pre-trained model (weights)
 model = BertModel.from_pretrained('bert-base-multilingual-cased',output_hidden_states = True,)
+
+#model = BertModel.from_pretrained('D:\\python_workspace\\pyTextMiner\\bert_models\\pytorch_model.bin',
+#                                  output_hidden_states = True,)
+
 model.to(device)
 
 # Put the model in "evaluation" mode, meaning feed-forward operation.
