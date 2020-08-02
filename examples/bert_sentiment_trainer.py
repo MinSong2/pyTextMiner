@@ -40,7 +40,7 @@ elif mode == 'kr':
     i = 1
 
     #below is just for a sample test
-    for doc in result[1:10000]:
+    for doc in result[1:2000]:
         document = ''
         for sent in doc:
             for word in sent:
@@ -89,7 +89,7 @@ print(data['targets'].shape)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-classifier = 'attention'
+classifier = 'transformers'
 if classifier == 'basic':
     model = PYBERTClassifier(len(class_names), bert_model_name)
 elif classifier == 'attention':
@@ -100,8 +100,11 @@ elif classifier == 'transformers':
 
 model = model.to(device)
 
-algorithm='no_transformers' #transformers or non_transformers
-torch_model_name='best_model_states.bin'
+algorithm='transformers' #transformers or non_transformers
+if algorithm =='transformers':
+    torch_model_name='best_model_state.bin'
+else:
+    torch_model_name = 'best_model_states.bin'
 
 #BERT authors suggests epoch from 2 to 4
 num_epochs = 2

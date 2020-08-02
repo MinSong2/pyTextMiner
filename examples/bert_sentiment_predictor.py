@@ -76,8 +76,12 @@ predictor.load_data(df, tokenizer, MAX_LEN)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 #algorithm and saved_training_model goes hand-in-hand
-algorithm='transformers'
-saved_training_model = './model_save/best_model_state.bin'
+algorithm='no_transformers'
+#saved_training_model = './model_save/best_model_state.bin'
+if algorithm=='transformers':
+    saved_training_model = './model_save/best_model_state.bin'
+else:
+    saved_training_model = './model_save/best_model_states.bin'
 
 predictor.load_model(saved_training_model)
 
