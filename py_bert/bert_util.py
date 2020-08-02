@@ -91,3 +91,15 @@ def show_confusion_matrix(confusion_matrix):
     plt.ylabel('True sentiment')
     plt.xlabel('Predicted sentiment')
     plt.show()
+
+def token_count_distribution(df, tokenizer):
+    token_lens = []
+    for txt in df.content:
+        tokens = tokenizer.encode(txt, max_length=512)
+        token_lens.append(len(tokens))
+
+    sns.distplot(token_lens)
+    plt.xlim([0, 256])
+    plt.xlabel('Token count')
+
+    plt.show()

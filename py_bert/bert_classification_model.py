@@ -16,6 +16,9 @@ class PYBERTClassifier(nn.Module):
                                   output_hidden_states = False)
         else:
             self.bert = BertModel.from_pretrained(model_name)
+
+        #print(self.bert.config.hidden_size)
+
         self.drop = nn.Dropout(p=0.3)
         self.out = nn.Linear(self.bert.config.hidden_size, n_classes)
 
@@ -24,6 +27,7 @@ class PYBERTClassifier(nn.Module):
             input_ids=input_ids,
             attention_mask=attention_mask
         )
+        #print(pooled_output.shape)
 
         output = self.drop(pooled_output)
         return self.out(output)
@@ -54,6 +58,7 @@ class PYBERTClassifierGenAtten(nn.Module):
             self.bert = BertModel.from_pretrained(model_name)
         self.out = nn.Linear(self.bert.config.hidden_size, n_classes)
         self.dr_rate = dr_rate
+        self.attention_mask=None
 
         if self.dr_rate != None:
             print('dropout ' + str(self.dr_rate))
@@ -65,12 +70,18 @@ class PYBERTClassifierGenAtten(nn.Module):
             attention_mask[i][:v] = 1
         return attention_mask.float()
 
-    def forward(self, token_ids, targets, segment_ids):
-        attention_mask = self.gen_attention_mask(token_ids, targets)
+    def get_attention_mask(self, atten_mask):
+        self.attention_mask = atten_mask
+
+    def forward(self, token_ids, targets, segment_ids, attention_mask):
+        if attention_mask is None:
+            self.attention_mask = self.gen_attention_mask(token_ids, targets)
+        else:
+            self.attention_mask = attention_mask
 
         _, pooler = self.bert(input_ids=token_ids,
                               token_type_ids=segment_ids.long(),
-                              attention_mask=attention_mask.float().to(token_ids.device))
+                              attention_mask=self.attention_mask.float().to(token_ids.device))
 
         if self.dr_rate:
             output = self.dropout(pooler)

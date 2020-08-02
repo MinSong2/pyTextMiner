@@ -35,7 +35,7 @@ class PYBERTTrainer:
         model = model.train()
         correct_predictions = 0.0
         # Reset the total loss for this epoch.
-        total_train_loss = 0
+        total_train_loss = 0.0
 
         for d in data_loader:
             input_ids = d["input_ids"].to(device)
@@ -64,6 +64,9 @@ class PYBERTTrainer:
 
                 pred = torch.argmax(F.softmax(logits), dim=1)
                 correct = pred.eq(targets)
+
+                label_ids = targets.to('cpu').numpy()
+
                 correct_predictions += correct.sum().item()
 
                 # Accumulate the training loss over all of the batches so that we can
@@ -93,15 +96,15 @@ class PYBERTTrainer:
                 if model.name() == 'PYBERTClassifier':
                     outputs = model(
                         input_ids=input_ids,
-                        token_type_ids=token_type_ids,
                         attention_mask=attention_mask
                     )
                 elif model.name() == 'PYBERTClassifierGenAtten':
-                    outputs = model(input_ids, targets, token_type_ids)
+                    outputs = model(input_ids, targets, token_type_ids,attention_mask)
 
                 _, preds = torch.max(outputs, dim=1)
                 loss = loss_fn(outputs, targets)
                 correct_predictions += torch.sum(preds == targets)
+
                 total_train_loss += loss.item()
                 loss.backward()
                 nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -109,7 +112,7 @@ class PYBERTTrainer:
                 scheduler.step()
                 optimizer.zero_grad()
 
-        avg_train_avg = correct_predictions / len(data_loader)
+        avg_train_avg = float(correct_predictions) / float(len(data_loader))*10
         # Calculate the average loss over all of the batches.
         avg_train_loss = total_train_loss / len(data_loader)
 
@@ -130,8 +133,8 @@ class PYBERTTrainer:
         model = model.eval()
 
         correct_predictions = 0
-        total_eval_accuracy = 0
-        total_eval_loss = 0
+        total_eval_accuracy = 0.0
+        total_eval_loss = 0.0
 
         with torch.no_grad():
             for d in data_loader:
@@ -160,19 +163,15 @@ class PYBERTTrainer:
                     if model.name() == 'PYBERTClassifier':
                         outputs = model(
                             input_ids=input_ids,
-                            token_type_ids=token_type_ids,
                             attention_mask=attention_mask
                         )
                     elif model.name() == 'PYBERTClassifierGenAtten':
                         outputs = model(
                             input_ids,
                             targets,
-                            token_type_ids)
+                            token_type_ids,
+                            attention_mask)
 
-                    #outputs = model(
-                        #input_ids=input_ids,
-                        #attention_mask=attention_mask
-                    #)
                     _, preds = torch.max(outputs, dim=1)
                     loss = loss_fn(outputs, targets)
 
@@ -181,8 +180,7 @@ class PYBERTTrainer:
                     total_eval_loss += loss.item()
 
         # Report the final accuracy for this validation run.
-        avg_val_accuracy = total_eval_accuracy / len(data_loader)
-        print("  Accuracy: {0:.2f}".format(avg_val_accuracy))
+        avg_val_accuracy = float(total_eval_accuracy) / float(len(data_loader))*10
 
         # Calculate the average loss over all of the batches.
         avg_val_loss = total_eval_loss / len(data_loader)
@@ -242,7 +240,7 @@ class PYBERTTrainer:
 
             print("")
             print("  Average training loss: {0:.2f}".format(train_loss))
-            print("  Accuracy: {0:.2f}".format(train_acc))
+            print("  Average accuracy: {0:.2f}".format(train_acc))
 
             print("  Training epcoh took: {:}".format(training_time))
 
@@ -264,13 +262,10 @@ class PYBERTTrainer:
                 algorithm=algorithm
             )
 
-            # Calculate the average loss over all of the batches.
-            avg_val_loss = val_loss / len(val_data_loader)
-
             # Measure how long the validation run took.
             validation_time = self.format_time(time.time() - t0)
 
-            print("  Validation Loss: {0:.2f}".format(avg_val_loss))
+            print("  Validation Loss: {0:.2f}".format(val_loss))
             print("  Validation took: {:}".format(validation_time))
 
             # Record all statistics from this epoch.
@@ -278,7 +273,7 @@ class PYBERTTrainer:
                 {
                     'epoch': epoch + 1,
                     'Training Loss': train_loss,
-                    'Valid. Loss': avg_val_loss,
+                    'Valid. Loss': val_loss,
                     'Valid. Accur.': val_acc,
                     'Training Time': training_time,
                     'Validation Time': validation_time

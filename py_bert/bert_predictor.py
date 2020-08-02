@@ -102,7 +102,7 @@ class bert_predictor:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             targets = batch["targets"].to(device)
-
+            token_type_ids = batch["token_type_ids"].to(device)
             #print(str(len(input_ids)) + ' == ' + str(len(targets)))
 
             # Telling the model not to compute or store gradients, saving memory and
@@ -114,10 +114,17 @@ class bert_predictor:
                                          token_type_ids=None,
                                          attention_mask=attention_mask)
                 else:
-                    outputs = self.model(
-                        input_ids=input_ids,
-                        attention_mask=attention_mask
-                    )
+                    if self.model.name() == 'PYBERTClassifier':
+                        outputs = self.model(
+                            input_ids=input_ids,
+                            attention_mask=attention_mask
+                        )
+                    elif self.model.name() == 'PYBERTClassifierGenAtten':
+                        outputs = self.model(input_ids, targets, token_type_ids, attention_mask)
+                    #outputs = self.model(
+                    #    input_ids=input_ids,
+                    #    attention_mask=attention_mask
+                    #)
 
             if algorithm == 'transformers':
                 logits = outputs[0]
@@ -153,7 +160,7 @@ class bert_predictor:
             text,
             max_length=MAX_LEN,
             add_special_tokens=True,
-            return_token_type_ids=False,
+            return_token_type_ids=True,
             pad_to_max_length=True,
             return_attention_mask=True,
             return_tensors='pt',
@@ -161,6 +168,7 @@ class bert_predictor:
 
         input_ids = encoded_text['input_ids'].to(device)
         attention_mask = encoded_text['attention_mask'].to(device)
+        token_type_ids = encoded_text["token_type_ids"].to(device)
 
         # Predict
         preds = 0
@@ -172,10 +180,19 @@ class bert_predictor:
                                  token_type_ids=None,
                                  attention_mask=attention_mask)
         else:
-            outputs = self.model(
-                input_ids=input_ids,
-                attention_mask=attention_mask
-            )
+            if self.model.name() == 'PYBERTClassifier':
+                outputs = self.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask
+                )
+            elif self.model.name() == 'PYBERTClassifierGenAtten':
+
+                outputs = self.model(input_ids, None, token_type_ids, attention_mask)
+
+            #outputs = self.model(
+            #    input_ids=input_ids,
+            #    attention_mask=attention_mask
+            #)
 
         if algorithm == 'transformers':
             logits = outputs[0]
