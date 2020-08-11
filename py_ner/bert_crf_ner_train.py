@@ -85,15 +85,15 @@ class BertCrfTrainer:
 
         # Train & Val Datasets
         cwd = Path.cwd()
-        data_in = cwd / "data"
-        train_data_dir = data_in / "말뭉치 - 형태소_개체명"
+        data_in = self.data_dir
+        train_data_dir = data_in + "/말뭉치 - 형태소_개체명"
         tr_ds = NamedEntityRecognitionDataset(train_data_dir=train_data_dir, model_dir=self.model_dir)
         tr_ds.set_transform_fn(transform_source_fn=ner_formatter.transform_source_fn,
                                transform_target_fn=ner_formatter.transform_target_fn)
         self.tr_ds = tr_ds
         self.tr_dl = DataLoader(tr_ds, batch_size=self.model_config.batch_size, shuffle=True, num_workers=0, drop_last=False)
 
-        val_data_dir = data_in / "validation_set"
+        val_data_dir = data_in + "/validation_set"
         val_ds = NamedEntityRecognitionDataset(train_data_dir=val_data_dir, model_dir=self.model_dir)
         val_ds.set_transform_fn(transform_source_fn=ner_formatter.transform_source_fn,
                                 transform_target_fn=ner_formatter.transform_target_fn)

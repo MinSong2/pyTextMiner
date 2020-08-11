@@ -66,15 +66,15 @@ class BertCrfNerVisualization:
         list_of_ner_word, decoding_ner_sentence = self.decoder_from_res(list_of_input_ids=list_of_input_ids, list_of_pred_ids=list_of_pred_ids)
         print("output>", decoding_ner_sentence)
         model_type = 'bert'
-        show(self.model, model_type, self.tokenizer, input_text)
+        show(self.model, model_type, self.tokenizer, decoding_ner_sentence, input_text)
         print("")
 
 if __name__ == '__main__':
-    model_dir = './experiments/base_model_with_crf'
+    model_dir = '../examples/exper/base_model_with_crf'
     visualizer = BertCrfNerVisualization(model_dir)
 
     tokenizer_model_name = "./ptr_lm_model/tokenizer_78b3253a26.model"
-    ner_model_name = "./experiments/base_model_with_crf_val/best-epoch-9-step-750-acc-0.980.bin"
+    ner_model_name = "../examples/exper/base_model_with_crf/best-epoch-6-step-500-acc-0.943.bin"
 
     visualizer.load_model(tokenizer_model_name, ner_model_name)
 
