@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 
-class BertGluCrfTrainer(BertCrfTrainer):
+class BertGruCrfTrainer(BertCrfTrainer):
     def __init__(self, data_dir='data', model_dir='experiments/base_model_with_crf_val'):
         super().__init__(data_dir,model_dir)
 
