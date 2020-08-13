@@ -11,30 +11,14 @@ import operator
 import pandas as pd
 
 import torch
-
 from torch.utils.tensorboard import SummaryWriter # from tensorboardX import SummaryWriter
-from torch.utils.data import DataLoader
-from torch import nn, optim
-
 from tqdm import tqdm, trange
-
 from py_ner.bert_crf_ner_train import BertCrfTrainer
 from py_ner.data_utils.utils import CheckpointManager, SummaryManager
 from py_ner.model.net import KobertCRF, KobertBiGRUCRF, KobertBiLSTMCRF
-from py_ner.model.utils import Config
 
-from py_ner.data_utils.ner_dataset import NamedEntityRecognitionDataset, NamedEntityRecognitionFormatter
-from py_ner.data_utils.vocab_tokenizer import Vocabulary, Tokenizer
-from py_ner.data_utils.pad_sequence import keras_pad_fn
-from gluonnlp.data import SentencepieceTokenizer
-from py_ner.kobert.pytorch_kobert import get_pytorch_kobert_model
-from py_ner.kobert.utils import get_tokenizer
-from sklearn.metrics import classification_report
 from pytorch_transformers import AdamW, WarmupLinearSchedule
 
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-from sklearn.utils.multiclass import unique_labels
 
 class BertBiLstmCrfTrainer(BertCrfTrainer):
     def __init__(self, data_dir='data', model_dir='experiments/base_model_with_crf_val'):
